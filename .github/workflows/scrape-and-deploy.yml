@@ -12,6 +12,10 @@ on:
 permissions:
   contents: write # リポジトリへの自動コミット・Pushを許可する権限設定（必須！）
 
+# 2026年6月問題（Node 20の強制廃止）に完全対応するため、Actions実行環境をNode 24へ引き上げ
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   scrape-and-commit:
     runs-on: ubuntu-latest
@@ -25,7 +29,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       # 3. 依存パッケージのインストール
