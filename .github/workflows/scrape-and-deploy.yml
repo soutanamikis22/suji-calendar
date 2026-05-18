@@ -1,0 +1,55 @@
+name: Scheduled Suji Scrape & Auto Deploy
+
+on:
+  schedule:
+    # 1時間ごとに実行 (毎時0分)
+    - cron: '0 * * * *'
+  workflow_dispatch: # GitHub上のボタンから手動で即時実行も可能にする
+  push:
+    branches:
+      - main # mainブランチに手動コミットや調整があった際も自動起動
+
+permissions:
+  contents: write # リポジトリへの自動コミット・Pushを許可する権限設定（必須！）
+
+jobs:
+  scrape-and-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. コードのチェックアウト
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Node.js のセットアップ
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. 依存パッケージのインストール
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. スクレイピングスクリプトの実行 (Yahoo!リアルタイム検索からスジ情報を取得)
+      - name: Run scrape script
+        run: node scrape.js
+
+      # 5. データが更新されていた場合のみ、自動コミット＆Pushを実行
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          
+          # suji-data.json と public/suji-data.json の差分を検知
+          git add suji-data.json public/suji-data.json
+          
+          # 差分があるときだけコミットしてPush (差分がないときはスキップ)
+          if ! git diff --cached --quiet; then
+            git commit -m "🤖 [Bot] 自動スクレイピング：最新のスジ情報に更新"
+            git push
+            echo "最新のデータをコミットしてPushしました！"
+          else
+            echo "データの差分はありません。更新をスキップします。"
+          fi

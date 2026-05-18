@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <!-- スマホでのインプットフォーカス時の画面ズームによるレイアウト崩れを防ぐため maximum-scale=1, user-scalable=no を適用！ -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SUJI MASTER - 自分専用スジ公開カレンダー</title>
+  
+  <!-- PWA & Mobile Meta Tags (スマホのホーム画面追加用) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SUJI MASTER">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#121214">
+
+  <!-- Google Fonts & Icon -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- サイドバー (ダッシュボード＆フィルター) -->
+    <aside class="sidebar">
+      <div class="brand">
+        <i class="fa-solid fa-train-subway brand-icon"></i>
+        <div class="brand-text">
+          <h1>SUJI MASTER</h1>
+          <span class="subtitle">Realtime X-Suji Calendar</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3><i class="fa-solid fa-magnifying-glass"></i> スジ情報検索</h3>
+        <div class="search-box">
+          <input type="text" id="search-input" placeholder="列車名、駅名、日付などを検索...">
+          <i class="fa-solid fa-filter filter-icon"></i>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-header-action">
+          <h3><i class="fa-solid fa-list-check"></i> クイックフィルタ</h3>
+          <button id="btn-edit-tags" class="btn-edit-action text-neon-cyan">
+            <i class="fa-solid fa-gear"></i> タグ編集
+          </button>
+        </div>
+        <div id="filter-tags" class="filter-tags">
+          <!-- JSで動的にタグを生成 -->
+        </div>
+      </div>
+
+      <div class="sidebar-section sync-panel">
+        <div class="sync-status">
+          <span class="status-indicator online"></span>
+          <span id="last-sync-time">データ取得済み</span>
+        </div>
+        <button id="btn-sync" class="btn btn-primary btn-glow">
+          <i class="fa-solid fa-rotate sync-icon"></i>最新情報に更新
+        </button>
+        <p class="sync-desc">Yahoo!リアルタイム検索から最新の「#スジ公開」ツイートを直接スクレイピングして反映します。</p>
+      </div>
+
+      <div class="sidebar-footer">
+        <p>THE TAG Room Edition v2.0</p>
+        <p>&copy; 2026 なみっきー専用システム</p>
+      </div>
+    </aside>
+
+    <!-- メインコンテンツ領域 (カレンダー表示) -->
+    <main class="main-content">
+      
+      <!-- トップバー -->
+      <header class="topbar">
+        <div class="calendar-navigation">
+          <button id="btn-prev" class="btn btn-icon"><i class="fa-solid fa-chevron-left"></i></button>
+          <h2 id="calendar-title" class="calendar-month-year">2026年 5月</h2>
+          <button id="btn-next" class="btn btn-icon"><i class="fa-solid fa-chevron-right"></i></button>
+          <button id="btn-today" class="btn btn-outline">今日</button>
+        </div>
+        
+        <div class="stats-cards">
+          <div class="stat-card glass">
+            <span class="stat-label">今月のスジ件数</span>
+            <span id="stat-count" class="stat-value text-neon-blue">0 件</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- カレンダーグリッド -->
+      <div class="calendar-container glass">
+        <!-- カレンダーの曜日ヘッダー -->
+        <div class="calendar-weekdays">
+          <div class="weekday sun">日</div>
+          <div class="weekday">月</div>
+          <div class="weekday">火</div>
+          <div class="weekday">水</div>
+          <div class="weekday">木</div>
+          <div class="weekday">金</div>
+          <div class="weekday sat">土</div>
+        </div>
+        <!-- カレンダーの日付グリッド -->
+        <div id="calendar-grid" class="calendar-grid">
+          <!-- JSで動的に日付を挿入 -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- タグ編集モーダル -->
+  <div id="modal-tags" class="modal hidden">
+    <div class="modal-content tag-modal-content">
+      <div class="modal-header">
+        <div class="modal-title-area">
+          <h2 class="modal-title"><i class="fa-solid fa-gears text-neon-cyan"></i> タグ＆マッチ規則の編集</h2>
+          <span class="subtitle">カレンダーの自動色分けとフィルタをカスタムできます。</span>
+        </div>
+        <button id="btn-close-tags" class="btn btn-icon btn-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="tag-list-scroll">
+          <table class="tag-table">
+            <thead>
+              <tr>
+                <th style="width: 25%">タグ名</th>
+                <th style="width: 20%">ネオンカラー</th>
+                <th style="width: 45%">マッチキーワード (カンマ区切り)</th>
+                <th style="width: 10%">操作</th>
+              </tr>
+            </thead>
+            <tbody id="tag-list-body">
+              <!-- JSで動的に設定行を挿入 -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="tag-add-section">
+          <h4><i class="fa-solid fa-plus-circle text-neon-green"></i> タグの新規追加</h4>
+          <div class="tag-form-grid">
+            <div class="form-group">
+              <label>タグ名</label>
+              <input type="text" id="new-tag-name" placeholder="例: 試運転">
+            </div>
+            <div class="form-group">
+              <label>表示カラー</label>
+              <select id="new-tag-color" class="form-select">
+                <option value="cyan">シアン (ネオンブルー)</option>
+                <option value="green">エメラルドグリーン</option>
+                <option value="pink">ホットピンク</option>
+                <option value="yellow">ネオンイエロー</option>
+                <option value="purple">ディープパープル</option>
+                <option value="orange">ネオンオレンジ</option>
+                <option value="red">ネオンレッド</option>
+              </select>
+            </div>
+            <div class="form-group keywords-group">
+              <label>マッチキーワード（カンマ区切りのOR条件）</label>
+              <input type="text" id="new-tag-keywords" placeholder="例: 試運転,試走,試用">
+            </div>
+            <div class="form-group btn-add-group">
+              <button id="btn-add-tag-submit" class="btn btn-outline btn-add-tag">
+                <i class="fa-solid fa-plus"></i> 追加
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-reset-tags" class="btn btn-outline btn-danger"><i class="fa-solid fa-trash-can"></i> リセット</button>
+        <button id="btn-save-tags" class="btn btn-primary"><i class="fa-solid fa-check"></i> 変更を適用</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- イベント詳細モーダル -->
+  <div id="modal-detail" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-area">
+          <span class="modal-date-badge text-neon-blue" id="modal-date">2026-05-28</span>
+          <h2 id="modal-title" class="modal-title">サイ129編成TK入場</h2>
+        </div>
+        <button id="btn-close-modal" class="btn btn-icon btn-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-section">
+          <h3><i class="fa-solid fa-circle-info"></i> スジ詳細情報 (時刻表)</h3>
+          <div class="timetable-container">
+            <pre id="modal-timetable" class="timetable-view"></pre>
+          </div>
+        </div>
+        <div class="detail-meta">
+          <div class="meta-item">
+            <span class="meta-label">情報提供ユーザー</span>
+            <span id="modal-user" class="meta-value text-neon-yellow">Unknown</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">取得元ハッシュタグ</span>
+            <span class="meta-value">#スジ公開</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a id="btn-twitter-link" href="#" target="_blank" class="btn btn-outline" style="display: none;">
+          <i class="fa-brands fa-x-twitter"></i> 元ツイートを開く
+        </a>
+        <button id="btn-copy-detail" class="btn btn-outline">
+          <i class="fa-regular fa-copy"></i> テキストをコピー
+        </button>
+        <button id="btn-close-footer" class="btn btn-primary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div id="toast" class="toast hidden">
+    <i class="fa-solid fa-circle-check toast-icon"></i>
+    <span id="toast-message">コピーしました！</span>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+  <!-- Service Worker (PWA制御) 登録スクリプト -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('ServiceWorker registered successfully with scope: ', reg.scope))
+          .catch(err => console.error('ServiceWorker registration failed: ', err));
+      });
+    }
+  </script>
+</body>
+</html>

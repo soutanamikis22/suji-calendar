@@ -1,0 +1,8 @@
+# ⚠️ 巨大なライブラリや一時デバッグ用ファイルを完全に除外
+node_modules/
+temp.html
+deploy_guide.md
+
+# OSの一時キャッシュファイル
+.DS_Store
+Thumbs.db
